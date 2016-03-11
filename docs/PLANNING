@@ -1,0 +1,120 @@
+Bsync - Build Synchronizer Tool -
+Planning Document
+
+Overview
+
+Bsync is a tool for building applications that use external projects, like libraries,
+which are versioned in a Git repository. What the tool does is retrieve all the required
+versions of each dependency needed by the application(project parent) and repeats it
+recursively until it gets the right components for making the specific build version.
+
+the main idea behind the tool is:
+
+To have a way to checkout several related git projects at once. this association between projects will depend on a "parent" project which will "ask" for any number of "context-wise sub-"projects.
+this project association will state an non-empty set available per sub-project for that particular version of the parent project.
+
+
+
+Goals:
+
+- Checkout the versions required for each
+
+
+
+Features:
+
+
+BASIC USES:
+during a versioned project lifetime, it will need to use code from other projects. 
+the connection between this set of N-elements(projects) can be as follows:
+npc:project node where 'p' is the parent ID and 'c' is the child ID.
+      
+     n11--n111     
+    /
+n01/--n12
+   \
+    n13
+
+each project can have any number of dependencies and can be a dependency itself for any number of projects.
+*a recursive dependency should be avoided by the user(on further versions it might be detected by the tool).
+
+this structure is not only established in space but also in 'time'. this means that each project might or might not be version controlled. if it is, it should be a git repository.(for now the tool will assume it is, later it will detect non-versioned projects too).
+this implies that , in theory, any version of any project will have a build recipe.
+
+-for each project , there will be a build.sync file inside the root folder or the Docs folder (Docs having priority). 
+
+
+
+
+Implementation:
+
+-Basic Operation:
+
+design decisions - draft:
+-each project will contain a file named build.sync which will contain the
+name of the projects which are needed by the "parent", along with the non-empty set of versions accepted for the build.
+
+-Dependencies File <build.sync>:
+
+Each project working under bsync needs to contain the dependencies file named 'build.sync'. The 'build.sync' file can be located
+at the project's root folder or inside the 'src' folder. In the case the 'build.sync' file is not available in either of those locations,
+the script will keep working without error, and it will assume that the project does NOT have any dependencies. It will INFO it and exit.
+
+Each dependency to be addressed by the bsync tool should be defined inside the build.sync file. The entry format is the following one:
+
+
+-defining version:
+A version can be anything equivalent to a git commit.(ie. git tag, commit hash,HEAD(pretty unusual use)).
+
+
+
+
+features misc:
+(from basic/main to advanced/crazy)
+
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>DRAFT END>>>>>>>>>>>
+
+
+
+The following structure is the suggested project standard file structure.
+
+ProjectName
+|
+|-doc
+|
+|-obj
+|
+|-src
+| |
+| |-build.sync
+| |
+| |-inc
+| |
+| |-build.ninja
+| |
+| |-OtherSrcFolder*
+|   |
+|   |-inc
+|   |
+|   |-YetAnotherSrcFolder**
+
+*If there's only one submodule present in the project it's recommended 
+
+build.sync file structure:
+
+TECHNICAL STUFF:
+build.sync format:
+
+-One dependency per line.
+-line comments start with '#' character.
+
+example:
+ProjectName@Version[:option1:option2..:optionN]//(Options still TBD)
+
+where:
+-ProjectName is the name of the project folder in the main vault.
+-Version is the Id of the commit hash, it can take the form of:
+  A git commit hash.
+  A git tag.(recommended)
+  A HEAD variable or any other kind of git commit-id.(not recommmended)
