@@ -5,15 +5,14 @@ Overview
 
 Bsync is a tool for building applications that use external projects, like libraries,
 which are versioned in a Git repository. What the tool does is retrieve all the required
-versions of each dependency needed by the application(project parent) and repeats it
+versions of each dependency needed by the application (project parent) and repeats it
 recursively until it gets the right components for making the specific build version.
+
 
 the main idea behind the tool is:
 
-To have a way to checkout several related git projects at once. this association between projects will depend on a "parent" project which will "ask" for any number of "context-wise sub-"projects.
+To have a way to checkout several related git projects at once. this association between projects will depend on a "parent" project which will "ask" for any number of "build-wise sub-"projects.
 this project association will state an non-empty set available per sub-project for that particular version of the parent project.
-
-
 
 Goals:
 
@@ -36,7 +35,7 @@ n01/--n12
     n13
 
 each project can have any number of dependencies and can be a dependency itself for any number of projects.
-*a recursive dependency should be avoided by the user(on further versions it might be detected by the tool).
+*a cyclical dependency should be avoided by the user(on further versions it might be detected by the tool).
 
 this structure is not only established in space but also in 'time'. this means that each project might or might not be version controlled. if it is, it should be a git repository.(for now the tool will assume it is, later it will detect non-versioned projects too).
 this implies that , in theory, any version of any project will have a build recipe.
@@ -46,6 +45,7 @@ this implies that , in theory, any version of any project will have a build reci
 
 
 
+TECHNICAL STUFF:
 Implementation:
 
 -Basic Operation:
@@ -69,13 +69,38 @@ A version can be anything equivalent to a git commit.(ie. git tag, commit hash,H
 
 
 
+build.sync format:
+
+-One dependency per line.
+-line comments start with '#' character.
+
+example:
+ProjectName@Version[:option1:option2..:optionN]//(Options still TBD)
+
+where:
+-ProjectName is the name of the project folder in the main vault.
+-Version is the Id of the commit hash, it can take the form of:
+  A git commit hash.
+  A git tag.(recommended)
+  A HEAD variable or any other kind of git commit-id.(not recommmended)
+
+
 features misc:
 (from basic/main to advanced/crazy)
 
 
+- Update All dependencies required by an specific project build.
+  [Implementation Details]
+  -Do a 2-stage process: First, a checkup stage which will look around for any issues like:
+    a)Not existent buildtags: A dependency build tag in a build.sync document does not exist
+    in that dependency's repository.
+    b)N-way dependency Ambiguity: N different build.sync files referred to different versions
+    of the same dependency.
+    c)cyclical dependency: A dependency graph which end at the starting point.
+
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>DRAFT END>>>>>>>>>>>
 
-
+Apendix A: Recommended Project File Structure
 
 The following structure is the suggested project standard file structure.
 
@@ -98,23 +123,3 @@ ProjectName
 |   |-inc
 |   |
 |   |-YetAnotherSrcFolder**
-
-*If there's only one submodule present in the project it's recommended 
-
-build.sync file structure:
-
-TECHNICAL STUFF:
-build.sync format:
-
--One dependency per line.
--line comments start with '#' character.
-
-example:
-ProjectName@Version[:option1:option2..:optionN]//(Options still TBD)
-
-where:
--ProjectName is the name of the project folder in the main vault.
--Version is the Id of the commit hash, it can take the form of:
-  A git commit hash.
-  A git tag.(recommended)
-  A HEAD variable or any other kind of git commit-id.(not recommmended)
