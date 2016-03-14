@@ -5,100 +5,125 @@ Overview
 
 Bsync is a tool for building applications that use external projects, like libraries,
 which are versioned in a Git repository. What the tool does is retrieve all the required
-versions of each dependency needed by the application (project parent) and repeats it
+versions of each dependency needed by the application (parent project) and repeats it
 recursively until it gets the right components for making the specific build version.
 
+User Workflow:
 
-the main idea behind the tool is:
+The expected user, in theory, will have several projects in his work area. The projects in
+question will be: front-end/application projects which will mostly require other projects
+like OSes, libraries or ports to work, and back-end/libraries projects which will mostly be
+used by the former type.
+The user will need to develop a certain project for which he will need a number of back-end
+projects. Assuming all the related projects exist in the workarea as well. the user can
+perform several actions ,like:
 
-To have a way to checkout several related git projects at once. this association between projects will depend on a "parent" project which will "ask" for any number of "build-wise sub-"projects.
-this project association will state an non-empty set available per sub-project for that particular version of the parent project.
+1) Begin to work in a new project:
+  - To do this, the user will need to decide which versions of each dependency he will
+    use for his project. Once decided, he will write his desired configuration inside the
+    build.sync file of his new project. Once configured, the user can run the 'bsync check'
+    command inside the project repository to testrun the configuration and check if there 
+    are any issues. If there are, he can keep modifying the configuration file until it's OK.
+  - With everything OK, the user can start develop his project. Although it is not needed,
+    it is advisable to make a Git commmit for the modification of build.sync alone.
 
-Goals:
+2) Return to an already existing project:
+  - Go to the project repository, and run the 'bsync up [git_commit]' command. If the
+    'git_commit' parameter is used, the command will attempt to checkout that commit from
+    the parent project. If not, it will use the current HEAD. Then it will perform a check
+    internally. If it fails, it will abort, and return every project to its original state.
+  - After this, the current repository can be a detached HEAD or not, in either case, it's
+    responsability of the user to do anything he sees fit.
 
-- Checkout the versions required for each
+3) Upgrade an older project to make it work with a new dependency:
+  - To do this, the user has to run a 'git checkout [-b newbranch]' to go to the place in
+    project history where he sees fit to place the new upgrade.
+  - Now, in the [new] branch of the project repository, if the build.sync file doesnt exist,
+    create build.sync and add the required dependencies. If it does exist, add the new
+    dependency/version.
+  - Run a 'bsync check' to make sure everything works just right. If it does. make a git
+    commit(recommended) or keep working.
 
+4) Upgrade an older project to make it work with an updated dependency:
+  - To do this, is very similar to the previous one. go to the place in the project history
+    where the user sees fit to place the new upgrade.
+  - Modify build.sync and substitute the version part of the dependency with the new version.
+  - Run a 'bsync check' to make sure everything works just right. If it does. make a git
+    commit(recommended) or keep working.
 
-
-Features:
-
-
-BASIC USES:
-during a versioned project lifetime, it will need to use code from other projects. 
-the connection between this set of N-elements(projects) can be as follows:
-npc:project node where 'p' is the parent ID and 'c' is the child ID.
-      
-     n11--n111     
-    /
-n01/--n12
-   \
-    n13
-
-each project can have any number of dependencies and can be a dependency itself for any number of projects.
-*a cyclical dependency should be avoided by the user(on further versions it might be detected by the tool).
-
-this structure is not only established in space but also in 'time'. this means that each project might or might not be version controlled. if it is, it should be a git repository.(for now the tool will assume it is, later it will detect non-versioned projects too).
-this implies that , in theory, any version of any project will have a build recipe.
-
--for each project , there will be a build.sync file inside the root folder or the Docs folder (Docs having priority). 
-
-
-
+5**)Solve a bug in a older project build which has been superseeded:
+  - This depends mainly on a case by case basis. but the use of the tool itself is pretty
+    much the same. First, checkout the desired place in the repository history to make the
+    fix.
+  - Make the fixes needed and commit. As long as the build.sync file already exists, and the
+    dependency list doesn't need to be changed, the tool doesnt need to be used at all to
+    coexist with the project progress.
 
 TECHNICAL STUFF:
-Implementation:
 
--Basic Operation:
+Projects and/or dependencies:
 
-design decisions - draft:
--each project will contain a file named build.sync which will contain the
-name of the projects which are needed by the "parent", along with the non-empty set of versions accepted for the build.
+All Projects handled by bsync need to be inside the path designated by the environment
+variable BSYNCDIR.
+A project and/or dependency does NOT need to be version controlled. If it is though, it
+should be a Git repository. As long as it has a build.sync file the tool will understand how
+to work.
 
--Dependencies File <build.sync>:
+Dependencies Configuration File <build.sync>:
 
-Each project working under bsync needs to contain the dependencies file named 'build.sync'. The 'build.sync' file can be located
-at the project's root folder or inside the 'src' folder. In the case the 'build.sync' file is not available in either of those locations,
-the script will keep working without error, and it will assume that the project does NOT have any dependencies. It will INFO it and exit.
+Each project working under bsync needs to contain the dependencies file named 'build.sync'.
+The 'build.sync' file can be located at the project's root folder or inside the 'src' folder.
+In the case the 'build.sync' file is not available in either of those locations, the script
+will keep working without error, and it will assume that the project does NOT have any
+dependencies, it will INFO it and exit.
 
-Each dependency to be addressed by the bsync tool should be defined inside the build.sync file. The entry format is the following one:
-
-
--defining version:
-A version can be anything equivalent to a git commit.(ie. git tag, commit hash,HEAD(pretty unusual use)).
-
-
-
-
-build.sync format:
+Each dependency used by the project should be defined inside the build.sync file.
+The entry format is the following one:
 
 -One dependency per line.
 -line comments start with '#' character.
 
 example:
-ProjectName@Version[:option1:option2..:optionN]//(Options still TBD)
+ProjectName|Version[:option1:option2..:optionN]//(Options still TBD)
 
 where:
 -ProjectName is the name of the project folder in the main vault.
 -Version is the Id of the commit hash, it can take the form of:
   A git commit hash.
   A git tag.(recommended)
-  A HEAD variable or any other kind of git commit-id.(not recommmended)
+  A HEAD variable or any other kind of git commit-id.(not recommended)
+  *Version can be only one(for now) and it can be left empty. If so, it does not refresh the dependency.
 
-
-features misc:
+Feature List:
 (from basic/main to advanced/crazy)
 
-
-- Update All dependencies required by an specific project build.
+1) Update All dependencies required by an specific project build. [main functionality]
   [Implementation Details]
-  -Do a 2-stage process: First, a checkup stage which will look around for any issues like:
-    a)Not existent buildtags: A dependency build tag in a build.sync document does not exist
-    in that dependency's repository.
-    b)N-way dependency Ambiguity: N different build.sync files referred to different versions
-    of the same dependency.
-    c)cyclical dependency: A dependency graph which end at the starting point.
+  -Do a 2-phase process:
+  First, a checkup phase which will look around for any issues like:
+    a)Not existent buildtags: A dependency build tag in a build.sync document does not
+    exist in that dependency's repository.
+    b)N-way dependency Ambiguity: N different build.sync files referred to different
+    versions of the same dependency.
+    c)cyclical dependency: A dependency graph which ends at the starting point.
+  And second, an action phase, in which the actual dependency refresh will be exectuted.
+  -Optimize checkup phase: For doing this, a good idea is to only get the build.sync
+   file from required version instead of checking out the whole project and do all the
+   relevant checks.
+  -Optimize action phase: during checkup phase, taking advantage of the fact that the
+  build.sync file is opened. save all the relevant info of the refreshes as a temp file,
+  that way during the action phase the refresh process will be straight forward and quick.
 
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>DRAFT END>>>>>>>>>>>
+2) Add,remove and modify dependencies through commands instead of by handling the build.sync
+  [Implementation Details]
+  -bsync add - It will add new dependencies to the build.sync file of the current project.
+   If the name of the dependency already exists, it will send a warning and abort.
+   To update an existing dependency. try 'bsync add -u' or 'bsync update'(maybe).
+  -bsync rm
+
+3) Add Secondary Versions to build.sync
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>END>>>>>>>>>>>
 
 Apendix A: Recommended Project File Structure
 
