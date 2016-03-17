@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+#
+# Usage: $0 <list>
+#Makes several git-checkout from each repository in <list> file
+#
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <list>"
+  exit 1
+fi
+#Note: This scripts assumes that BSYNCDIR variable exists and is a valid path
+#check if file exists
+if [ ! -r $1 ]; then
+  echo "error: file ${1} does not exist"
+fi
+
+#Read file and checkout each repository
+while read file
+  do 
+  repo=$(echo $file | cut -d ' ' -f1 )
+  version=$(echo $file | cut -d ' ' -f2 )
+  git -C $repo checkout $version
+done < "$1"
