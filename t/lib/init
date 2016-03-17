@@ -1,0 +1,77 @@
+#!/bin/bash
+
+if test "$1" = "-d"; then
+  debug=1
+fi
+
+test_tick () {
+  if test -z "${test_tick+set}"
+  then
+    test_tick=1437136273
+  else
+    test_tick=$(($test_tick + 60))
+  fi
+  GIT_COMMITTER_DATE="$test_tick -0500"
+  GIT_AUTHOR_DATE="$test_tick -0500"
+  export GIT_COMMITTER_DATE GIT_AUTHOR_DATE
+}
+
+cleanup_test () {
+  ec=$?
+  cd "$TEST_DIR"
+  if test -z "$debug"; then
+    rm -rf "$WORK"
+  fi
+  if test $ec -eq 0; then
+    echo PASS
+  else
+    echo FAIL
+  fi
+  exit $ec
+}
+
+#creates git repository for testing
+setup_base_git () {
+if test ! -d "$TESTGIT"; then
+  mkdir "$TESTGIT"
+  cd "$TESTGIT"
+  git init
+  list=(1 2 3 4 5 6 7 8 9 10)
+  for num in "${list[@]}"
+  do
+    touch "file"${num}
+    git add "file"${num}
+    git commit -m "file${num}"
+    git tag "v${num}"
+  done
+  cd -
+fi
+}
+
+TEST_DIR=$(pwd)
+
+GIT_AUTHOR_EMAIL=author@example.com
+GIT_AUTHOR_NAME='A U Thor'
+GIT_COMMITTER_EMAIL=committer@example.com
+GIT_COMMITTER_NAME='C O Mitter'
+export GIT_AUTHOR_EMAIL GIT_AUTHOR_NAME
+export GIT_COMMITTER_EMAIL GIT_COMMITTER_NAME
+
+WORK=$(mktemp -d "trash-$(basename "$0")-XXXXXXXXXX")
+
+if test $? -ne 0; then
+  echo "fatal: Failed to create temporary working directory."
+  exit 1
+fi
+
+SRCDIR=$(readlink -f ../src)
+export SRCDIR
+cd "$WORK"
+
+TESTGIT=gitmom
+export $TESTGIT
+
+if test $? -ne 0; then
+  false
+  cleanup_test
+fi

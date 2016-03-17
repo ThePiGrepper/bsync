@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+#
+#Test for bsync-checkout script
+#The following test creates several repositories and creates a checkout file
+#that the script will fetch to checkout the specified versions from each. Then,
+#it will check if the commit IDs of the current HEAD and the references in the file are
+#the same.
+. lib/init
+
+setup_base_git &&
+#create git repositories
+declare -a arr=(1 2 3 4 5 6 7 8 9 10) &&
+arr=("${arr[@]/#/child}") &&
+for dir in "${arr[@]}"; do
+    test $? -eq 0 &&
+    git clone $TESTGIT $dir
+done &&
+
+COFILE=co.lst &&
+#create checkout file
+touch $COFILE &&
+for dir in "${arr[@]}"; do
+    test $? -eq 0 &&
+    echo "${PWD}/${dir} v${dir#child}" >> $COFILE
+done &&
+
+$(${SRCDIR}/bsync-checkout "$COFILE") &&
+for dir in "${arr[@]}"; do
+    test $? -eq 0 &&
+    test $(git -C ${dir} rev-parse HEAD) == $(git -C ${dir} rev-parse v${dir#child})
+done
+cleanup_test
