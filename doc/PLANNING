@@ -1,5 +1,6 @@
 Bsync - Build Synchronizer Tool -
 Planning Document
+Author: Erick Cafferata
 
 Overview
 
@@ -122,6 +123,14 @@ Feature List:
   -bsync rm
 
 3) Add Secondary Versions to build.sync
+
+4) Add Multi-vault Support
+  [Implementation Details]
+  -BSYNCDIR modification: Extend BSYNCDIR usability by using a $PATH-like format to support
+   multiple paths. ie: PATH1:PATH2:PATH3:..PATHN
+  -The build.sync file format should NOT change because of this. The tool will search for the
+   right repository using BSYNCDIR. It will search from first to last path in the BSYNCDIR
+   variable, so if there are two repositories with the name, the first one will be used.
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>END>>>>>>>>>>>
 
