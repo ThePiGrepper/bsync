@@ -100,14 +100,19 @@ Feature List:
 
 1) Update All dependencies required by an specific project build. [main functionality]
   [Implementation Details]
+  -Middle level script: [bsync-down](bsync downstream)
+  -It will handle all function-related option validation first.
   -Do a 2-phase process:
-  First, a checkup phase which will look around for any issues like:
-    a)Not existent buildtags: A dependency build tag in a build.sync document does not
-    exist in that dependency's repository.
-    b)N-way dependency Ambiguity: N different build.sync files referred to different
-    versions of the same dependency.
-    c)cyclical dependency: A dependency graph which ends at the starting point.
-  And second, an action phase, in which the actual dependency refresh will be exectuted.
+    a) First, [bsync-checkgraph] a checkup phase which will look around for any issues like:
+      -Not existent buildtags: A dependency build tag in a build.sync document does not
+      exist in that dependency's repository.
+      -N-way dependency Ambiguity: N different build.sync files referred to different
+      versions of the same dependency.
+      -cyclical dependency: A dependency graph which ends at the starting point.
+      This script will use a low-level script itself for parsing the build.sync file
+      [bsync-parse].
+    b) And second, an action phase[bsync-checkout], in which the actual dependency refresh
+       will be exectuted. All the different checkout options will be handled by this script.
   -Optimize checkup phase: For doing this, a good idea is to only get the build.sync
    file from required version instead of checking out the whole project and do all the
    relevant checks.
@@ -115,12 +120,25 @@ Feature List:
   build.sync file is opened. save all the relevant info of the refreshes as a temp file,
   that way during the action phase the refresh process will be straight forward and quick.
 
-2) Add,remove and modify dependencies through commands instead of by handling the build.sync
+2) Modify and update dependencies list securely. [Main functionality]
   [Implementation Details]
-  -bsync add - It will add new dependencies to the build.sync file of the current project.
-   If the name of the dependency already exists, it will send a warning and abort.
-   To update an existing dependency. try 'bsync add -u' or 'bsync update'(maybe).
-  -bsync rm
+  -Middle level script: [bsync-up](bsync upstream)
+  -It will handle all function-related option validation first.
+  -There are several ways the user would like to modify the dependencies list, such as:
+    a)By manual checkout of the dependencies repositories and then wishing that to be
+    reflected in the build.sync file.
+    b)By adding a particular dependency/version pair to the project dependencies directly by
+    command line.
+    c)By removing a particular dependency/version pair from the dependencies list directly by
+    command line.
+   The script will handle all previous case scenarios.
+  -In either case, there will be options for handling new dependencies addition. If the option
+  is not used, the script will abort and give a warning.
+  -To maintain build.sync integrity, before saving changes, the script will run a check
+  [bsync-checkgraph] to test if the new build list is a valid one. If not, it will abort and
+  give a warning.
+
+-----------
 
 3) Add Secondary Versions to build.sync
 
