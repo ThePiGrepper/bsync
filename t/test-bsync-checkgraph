@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+#
+#Test for bsync-checkgraph script
+#This script test the checkgraph functionality used on bsync.
+#Test plan:
+#-create a main repository with N different commits
+#-at each commit, add a different version of build.sync
+#-create different case sccenarios using this scheme
+#relevant case scenarios:
+##-A correct tree-like graph with all the information OK.
+##-A graph with an ambiguity issue.
+##-A graph with a loop issue.
+##-A graph with a single one-node recursive graph, and a several-node one-node recursive graph.
+##-A graph with a node referencing a not found repository.
+##-A graph with a node referencing a repository with a not found version.
+##The test must build the needed dependencies list in a random order. And test several times
+#to assure that several possibilies are covered.
+##The expected result it to, at least, find the issue and report OK and Error.
+##It is desirable that it returns the type of error as well. Future iterations.
+
+. lib/init
+
+add_dep(){
+#$1:file
+#$2:repo
+#$3:version
+  echo "${2} ${3}" >> ${1}
+}
+
+#create 2 repositories each with 5+ commits, each with different build.sync files.
+BFILE=build.sync
+#Construction Phase
+#
+#Case #1:Everything OK
+#Parent Repo:Repo1,version1
+#create Repo1:version1 with dependencies
+git init repo0
+cd repo0
+touch $BFILE
+add_dep $BFILE repo1 ver1
+add_dep $BFILE repo2 ver2
+git add $BFILE
+git commit -m "t1_s"
+git tag ver1 HEAD
+#create repo1-ver1
+cd -
+git init repoM
+cd repoM
+touch $BFILE
+add_dep $BFILE repo3 ver3
+git add $BFILE
+git commit -m "t1_1"
+git tag ver1 HEAD
+#create repo2-ver2
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo4 ver4
+add_dep $BFILE repo5 ver5
+git add $BFILE
+git commit -m "t1_2"
+git tag ver2 HEAD
+#create repo3-ver3
+rm -rf $BFILE
+git add $BFILE
+git commit -m "t1_3"
+git tag ver3 HEAD
+#create repo4-ver4
+rm -rf $BFILE
+touch $BFILE
+git add $BFILE
+git commit -m "t1_4"
+git tag ver4 HEAD
+#create repo5-ver5
+rm -rf $BFILE
+git add $BFILE
+git commit -m "t1_5"
+git tag ver5 HEAD
+#create shadow repos
+cd -
+ln -s ${PWD}/repoM repo1
+ln -s ${PWD}/repoM repo2
+ln -s ${PWD}/repoM repo3
+ln -s ${PWD}/repoM repo4
+ln -s ${PWD}/repoM repo5
+#probably will confuse script if it checks for hashes.
+#try to create all different commits for every version.
+
+#Case #2:First Issue: re-entrancy GOOD
+cd repo0
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo6 ver6
+add_dep $BFILE repo2 ver2
+git add $BFILE
+git commit -m "t2_s"
+git tag ver2 HEAD
+#create repo6-ver6
+cd -
+cd repoM
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo3 ver3
+add_dep $BFILE repo4 ver4
+git add $BFILE
+git commit -m "t2_1"
+git tag ver6 HEAD
+cd -
+
+#Case #3:Second Issue: re-entrancy BAD(version mismatch)
+cd repo0
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo7 ver7
+add_dep $BFILE repo2 ver2
+git add $BFILE
+git commit -m "t3_s"
+git tag ver3 HEAD
+#create repo7-ver7
+cd -
+cd repoM
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo3 ver3
+add_dep $BFILE repo4 ver5
+git add $BFILE
+git commit -m "t2_1"
+git tag ver7 HEAD
+cd -
+
+#Case #4:Third Issue: Loopy dependency(re-entrancy GOOD)
+#This is a case where the expected output is OK, it test
+# bsync-checkgraph support of loops
+
+#Testing Phase
+#
+cd repo0 &&
+git checkout ver1 &&
+rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+#Expected Result: OK
+test $? -eq 0 &&
+git checkout ver2 &&
+rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+#Expected Result: OK
+test $? -eq 0 &&
+git checkout ver3 &&
+rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+#Expected Result: Fail
+test $? -ne 0
+cleanup_test
