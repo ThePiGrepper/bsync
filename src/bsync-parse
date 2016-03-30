@@ -1,18 +1,30 @@
 #!/bin/bash
 #
 #
-# Usage: $0 <list>
+# Usage: $0 <stdin | file>
 # Parse build.sync file format and outputs the dependency list information only
-#
-if [ $# -eq 0 ]; then
-  echo "Usage: $0 <list>"
-  exit 1
-fi
+# file or sdtin input functionality
+[ $# -ge 1 -a -f "$1" ] && input="$1" || input="-"
+
 #check if file exists
 if [ ! -r $1 ]; then
   echo "error: file ${1} does not exist"
   exit 1
 fi
+
+var=$(cat ${input})
+# You need printf '%s\n' "$var" here because if you use printf '%s' "$var" 
+# on a variable that doesn't end with a newline then the while loop will
+# completely miss the last line of the variable.
+printf '%s\n' "$var" | while IFS= read -r line
+do
+  #trim comments
+  cline=$(echo "$line" | sed -e "s/[ \t]*#.*//g")
+  if [[ -n  $cline ]]; then
+    echo "$(echo $cline | cut -d ' ' -f1) $(echo $cline | cut -d ' ' -f2)"
+  fi
+done
+exit
 #Read file and preprocess all relevant info. discard everything else.
 while read line
   do 
