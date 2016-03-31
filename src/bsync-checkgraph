@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+#
+# Usage: $0
+#Tests the structure of the build graph on build.sync file in the current repo
+#
+#It starts by adding all elements in the local build.sync file to the internal table.
+#This adding process has two parts:
+#A parsing phase: it will cut out comments,empty lines, and unnecessary spaces.
+#A translation phase: it will seek the true ID of each version,
+#the hash value of the commit, using 'git -C $repo rev-parse $version'.
+#
+#The main loop goes through the table. Per iteration, it checks if the
+#current Node exist "previously" in the table. IT does as follows:
+#-The searching method if from the element indexed to the beginning of the table.
+#-If it encounters that the Node DOES NOT exist, it adds the content of its
+# respective build.sync file to the table using the adding process defined previously.
+#-If it encounters that it does exist but the version does not match with the one
+# in the table, it aborts operation and sends ERROR.
+#-If it matches everything(project and version), it skips it and do nothing else.
+#
+#if the loop ends, it means that all elements have been read successfully and the graph
+#is OK.
+
+add2table()
+{
+#Read file and preprocess all relevant info. discard everything else.
+while IFS= read -r line;do
+  #Parse phase
+  cline=$(echo "$line" | sed -e "s/[ \t]*#.*//g")
+  if [[ $(echo $cline | wc -w) -ge 1 ]]; then
+    if [[ $(echo $cline | wc -w) -ge 2 ]]; then
+      read repo pversion <<<"$(echo $cline | cut -d ' ' -f1) $(echo $cline | cut -d ' ' -f2)"
+      #echo $repo $pversion
+    else
+      read repo pversion <<<"$(echo $cline | cut -d ' ' -f1) HEAD"
+      #echo $repo $pversion
+    fi
+    #Translation Phase
+    #Support for single Vault only
+    trepo=$BSYNCDIR/$repo
+    tversion=$(git -C $BSYNCDIR/$repo rev-parse $pversion 2>/dev/null)
+    if test $? -eq 0; then
+      Trepo[$index]=$trepo;
+      Tver[$index]=$tversion;
+      ((index++))
+    else
+      echo "error:Invalid Node <$repo - $pversion>. abort" >&2
+      exit 1
+    fi
+  fi
+done <<< "$bs"
+return 0
+}
+
+declare -a Trepo
+declare -a Tver
+index=0
+#add parent repository to Table
+Trepo[$index]=$(git rev-parse --show-toplevel)
+Tver[$index]=$(git rev-parse HEAD)
+((index++))
+for ((i=0;i<index;i++)); do
+  exists=0
+  for ((j=i-1;j>=0;j--)); do
+    if test ${Trepo[$j]} == ${Trepo[$i]};then
+      if test ${Tver[$j]} == ${Tver[$i]};then 
+        exists=1
+      else
+        echo -e "error:Ambiguous Node (${Trepo[$j]}):\n${Tver[$j]}\n${Tver[$i]}\nabort" >&2
+        exit 1
+      fi
+    fi
+  done
+  if test $exists -eq 0; then
+  #detect if build.sync file exists in its default directories
+    bs=$(git -C ${Trepo[$i]} show ${Tver[$i]}:build.sync 2>/dev/null) \
+    || bs=$(git -C ${Trepo[$i]} show ${Tver[$i]}:src/build.sync 2>/dev/null) \
+    && add2table
+  fi
+done
+exit 0
