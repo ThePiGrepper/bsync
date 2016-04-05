@@ -83,6 +83,11 @@ ln -s ${PWD}/repoM repo2
 ln -s ${PWD}/repoM repo3
 ln -s ${PWD}/repoM repo4
 ln -s ${PWD}/repoM repo5
+ln -s ${PWD}/repoM repo6
+ln -s ${PWD}/repoM repo7
+ln -s ${PWD}/repoM repo8
+ln -s ${PWD}/repoM repo9
+ln -s ${PWD}/repoM repo10
 #probably will confuse script if it checks for hashes.
 #try to create all different commits for every version.
 
@@ -108,6 +113,7 @@ git tag ver6 HEAD
 cd -
 
 #Case #3:Second Issue: re-entrancy BAD(version mismatch)
+#This is a case where the expected output is FAIL
 cd repo0
 rm -rf $BFILE
 touch $BFILE
@@ -129,8 +135,42 @@ git tag ver7 HEAD
 cd -
 
 #Case #4:Third Issue: Loopy dependency(re-entrancy GOOD)
-#This is a case where the expected output is OK, it test
+#This is a case where the expected output is OK, it tests
 # bsync-checkgraph support of loops
+cd repo0
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo1 ver1
+add_dep $BFILE repo2 ver2
+add_dep $BFILE repo8 ver8
+git add $BFILE
+git commit -m "t4_s"
+git tag ver4 HEAD
+#create repo8-ver8
+cd -
+cd repoM
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo3 ver3
+add_dep $BFILE repo4 ver4
+add_dep $BFILE repo0 ver4
+git add $BFILE
+git commit -m "t2_1"
+git tag ver8 HEAD
+cd -
+#Case #5:Fourth Issue: Loopy dependency(re-entrancy BAD)
+#This is a case where the expected output is FAIL, it tests
+# bsync-checkgraph support of loops
+cd repo0
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo1 ver1
+add_dep $BFILE repo2 ver2
+add_dep $BFILE repo0 ver1
+git add $BFILE
+git commit -m "t5_s"
+git tag ver5 HEAD
+cd -
 
 #Testing Phase
 #
@@ -146,5 +186,15 @@ test $? -eq 0 &&
 git checkout ver3 &&
 rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
 #Expected Result: Fail
-test $? -ne 0
+test $? -ne 0 &&
+echo $rvar &&
+git checkout ver4 &&
+rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+#Expected Result: OK
+test $? -eq 0 &&
+git checkout ver5 &&
+rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+#Expected Result: Fail
+test $? -ne 0 &&
+echo $rvar
 cleanup_test
