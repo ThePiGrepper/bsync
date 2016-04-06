@@ -56,12 +56,13 @@ declare -a Tver
 declare -a skiptable
 index=0
 #add input file dependencies to Table
-bs=$(cat "$1" 2>/dev/null) && add2table
+bs=$(cat -)
+add2table
 for ((i=0;i<index;i++)); do
   exists=0
   for ((j=i-1;j>=0;j--)); do
     if test ${Trepo[$j]} == ${Trepo[$i]};then
-      if test ${Tver[$j]} == ${Tver[$i]};then 
+      if test ${Tver[$j]} == ${Tver[$i]};then
         exists=1
         skiptable[$i]=1;
       else
@@ -83,14 +84,14 @@ for ((i=0;i<index;i++)); do
     fi
   fi
 done
-#output to file if $2 is an existing directory
+#output to file if $1 is an existing directory
 #filename is the sha1 value of the parent node
 #overwrites file
-if test $# -ge 1 -a -d "$2";then
-  rm -rf ${2}/temp
+if [ -d "$1" ]; then
+  rm -rf ${1}/bstemp
   for ((i=0;i<index;i++));do
     if [[ ${skiptable[$i]} -ne 1 ]]; then
-      echo "${Trepo[$i]} ${Tver[$i]}" >> ${2}/temp
+      echo "${Trepo[$i]} ${Tver[$i]}" >> ${1}/bstemp
     fi
   done
 fi

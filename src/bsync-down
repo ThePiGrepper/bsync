@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+#
+# Usage: $0 [ <file> | <--non-cached> ]
+#
+#bync downstream:
+#This script updates all dependencies required by an specific project build.
+#caching functionality:
+#it will check inside the cache directory for a file named as the parent project <commit-id>.
+#if it exists such file, it will skip checking the dependency graph and run bsync-checkout with
+#the cached file. If it does not exist, it will run "checkgraph", and after "checkout" it will
+#save the temporal list created during "checkgraph" with the name of the <commit-id> of the
+#parent project.
+#
+#<--no-cache> : caching functionality disabled. caching functionality is only possible for
+#full versioned lists.
+#<file> : enter first dependency list from file. caching functionality disabled.
+
+#check if vault variable is set/valid
+#support single vault ONLY
+if [ ! -d "$BSYNCDIR" ]; then
+  echo "error: valid BSYNCDIR variable missing.abort" >&2
+  exit 1
+fi
+while test $# -ne 0; do
+  case "$1" in
+    --no-cache)
+      volatile=1;
+      shift
+      ;;
+    -f)
+      if [[ -f ${2} ]]; then
+        volatile=1;
+        file=${2}
+        shift 2
+      else
+        echo "error: file '${2}' not found.abort" >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "error: unrecognized parameter '${1}'.abort" >&2
+      exit 1
+  esac
+done
+srcdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if test ! -z "$file"; then
+#checkgraph file
+  cat $file | ${srcdir}/bsync-checkgraph $PWD && \
+  ${srcdir}/bsync-checkout bstemp && \
+  rm bstemp
+else
+  baserepo=$(git rev-parse --show-toplevel 2>/dev/null)
+  if test $? -ne 0; then
+    echo "error:not a git repository.abort" >&2
+    exit 1
+  fi
+  if test -z $volatile; then
+    #set output filedir
+    if [ -d "$BSYNC_CACHE" ]; then
+#maybe readlink -f
+      cachedir=${BSYNC_CACHE}
+    else
+      cachedir=${baserepo}/.bsync
+    fi
+    cachefile=$(basename ${baserepo})$(git rev-parse HEAD)
+    #detect if cachefile exists
+    if [[ -f ${cachedir}/${cachefile} ]]; then
+      echo "loading from cache..."
+      ${srcdir}/bsync-checkout ${cachedir}/${cachefile}
+    else
+      bs=$(git -C ${baserepo} show HEAD:build.sync 2>/dev/null) \
+      || bs=$(git -C ${baserepo} show HEAD:src/build.sync 2>/dev/null)
+      if test $? -ne 0; then
+        echo "error:build.sync file not found on repo.abort" >&2
+        exit 1
+      fi
+      mkdir -p ${cachedir}
+      echo "$bs"|${srcdir}/bsync-checkgraph ${cachedir} && \
+      ${srcdir}/bsync-checkout ${cachedir}/bstemp && \
+      if test $? -eq 0; then
+        mv ${cachedir}/bstemp ${cachedir}/${cachefile}
+      else
+        rm ${cachedir}/bstemp
+      fi
+    fi
+  else
+    bs=$(git -C ${baserepo} show HEAD:build.sync 2>/dev/null) \
+    || bs=$(git -C ${baserepo} show HEAD:src/build.sync 2>/dev/null)
+    if test $? -ne 0; then
+      echo "error: build.sync file not found on repo.abort" >&2
+      exit 1
+    fi
+    echo "$bs"|${srcdir}/bsync-checkgraph $PWD && \
+    ${srcdir}/bsync-checkout bstemp && \
+    rm bstemp
+  fi
+fi
+exit $?

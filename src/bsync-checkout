@@ -4,7 +4,8 @@
 # Usage: $0 <list>
 #Makes several git-checkout from each repository in <list> file
 #return value: 0: only versioned dependencies listed
-#              1: contains non-versioned dependency
+#              64:contains non-versioned dependency
+#              1: error
 #
 if [ $# -eq 0 ]; then
   echo "Usage: $0 <list>"
@@ -14,6 +15,7 @@ fi
 #check if file exists
 if [ ! -r $1 ]; then
   echo "error: file ${1} does not exist"
+  exit 1
 fi
 
 #Read file and checkout each repository
@@ -23,8 +25,7 @@ while read line;do
   if test "$version" != "local"; then
     git -C $repo checkout $version
   else
-    volatile=1
+    volatile=64
   fi
 done < "$1"
-echo "$volatile"
-exit 0
+exit $volatile
