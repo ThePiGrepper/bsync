@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #
-# Usage: $0 <output dir> <local>
+# Usage: $0 input-file <output dir>
 #Tests the structure of the build graph on build.sync file in the current repo
 #
 #It starts by adding all elements in the local build.sync file to the internal table.
@@ -55,16 +55,8 @@ declare -a Trepo
 declare -a Tver
 declare -a skiptable
 index=0
-#add parent repository to Table
-if test "$2" == "local";then
-#only works if executed at repo root
-  Trepo[$index]=$(pwd)
-  Tver[$index]="local"
-else
-  Trepo[$index]=$(git rev-parse --show-toplevel)
-  Tver[$index]=$(git rev-parse HEAD)
-fi
-((index++))
+#add input file dependencies to Table
+bs=$(cat "$1" 2>/dev/null) && add2table
 for ((i=0;i<index;i++)); do
   exists=0
   for ((j=i-1;j>=0;j--)); do
@@ -91,14 +83,14 @@ for ((i=0;i<index;i++)); do
     fi
   fi
 done
-#output to file if $1 is an existing directory
+#output to file if $2 is an existing directory
 #filename is the sha1 value of the parent node
 #overwrites file
-if test $# -ge 1 -a -d "$1";then
-  rm -rf ${1}/${Tver[0]}
-  for ((i=1;i<index;i++));do
+if test $# -ge 1 -a -d "$2";then
+  rm -rf ${2}/temp
+  for ((i=0;i<index;i++));do
     if [[ ${skiptable[$i]} -ne 1 ]]; then
-      echo "${Trepo[$i]} ${Tver[$i]}" >> ${1}/${Tver[0]}
+      echo "${Trepo[$i]} ${Tver[$i]}" >> ${2}/temp
     fi
   done
 fi
