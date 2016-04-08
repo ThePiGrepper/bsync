@@ -151,12 +151,17 @@ cd -
 cd repoM
 rm -rf $BFILE
 touch $BFILE
-add_dep $BFILE repo3 ver3
-add_dep $BFILE repo4 ver4
-add_dep $BFILE repo0 ver4
+add_dep $BFILE repo9 ver9
 git add $BFILE
-git commit -m "t2_1"
+git commit -m "t4_1"
 git tag ver8 HEAD
+#create repo9-ver9
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo8 ver8
+git add $BFILE
+git commit -m "t4_1"
+git tag ver9 HEAD
 cd -
 #Case #5:Fourth Issue: Loopy dependency(re-entrancy BAD)
 #This is a case where the expected output is FAIL, it tests
@@ -166,34 +171,50 @@ rm -rf $BFILE
 touch $BFILE
 add_dep $BFILE repo1 ver1
 add_dep $BFILE repo2 ver2
-add_dep $BFILE repo0 ver1
+add_dep $BFILE repo6 ver10
 git add $BFILE
 git commit -m "t5_s"
 git tag ver5 HEAD
+#create repo10-ver10
+cd -
+cd repoM
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo7 ver11
+git add $BFILE
+git commit -m "t5_1"
+git tag ver10 HEAD
+#create repo11-ver11
+rm -rf $BFILE
+touch $BFILE
+add_dep $BFILE repo6 ver8
+git add $BFILE
+git commit -m "t5_1"
+git tag ver11 HEAD
 cd -
 
 #Testing Phase
 #
 cd repo0 &&
 git checkout ver1 &&
-rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+rvar=$(${SRCDIR}/bsync-checkgraph $BFILE 2>&1)
 #Expected Result: OK
 test $? -eq 0 &&
 git checkout ver2 &&
-rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+rvar=$(${SRCDIR}/bsync-checkgraph $BFILE 2>&1)
 #Expected Result: OK
 test $? -eq 0 &&
 git checkout ver3 &&
-rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+rvar=$(${SRCDIR}/bsync-checkgraph $BFILE 2>&1)
 #Expected Result: Fail
 test $? -ne 0 &&
 echo $rvar &&
 git checkout ver4 &&
-rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+rvar=$(${SRCDIR}/bsync-checkgraph $BFILE 2>&1)
 #Expected Result: OK
 test $? -eq 0 &&
 git checkout ver5 &&
-rvar=$(${SRCDIR}/bsync-checkgraph 2>&1)
+rvar=$(${SRCDIR}/bsync-checkgraph $BFILE 2>&1)
 #Expected Result: Fail
 test $? -ne 0 &&
 echo $rvar
