@@ -25,7 +25,7 @@ for dir in "${arr[@]}"; do
     echo "${PWD}/${dir} v${dir#child}" >> $COFILE
 done &&
 
-$(${SRCDIR}/bsync-checkout "$COFILE") &&
+${SRCDIR}/bsync-checkout "$COFILE" &&
 for dir in "${arr[@]}"; do
     test $? -eq 0 &&
     test $(git -C ${dir} rev-parse HEAD) == $(git -C ${dir} rev-parse v${dir#child})
