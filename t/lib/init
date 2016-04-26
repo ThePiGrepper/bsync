@@ -68,8 +68,8 @@ fi
 SRCDIR=$(readlink -f ../src)
 export SRCDIR
 cd "$WORK"
-BSYNCDIR=$(pwd)
-export BSYNCDIR
+BSYNC_PATH=$(pwd)
+export BSYNC_PATH
 
 TESTGIT=gitmom
 export $TESTGIT

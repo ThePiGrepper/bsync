@@ -65,7 +65,7 @@ TECHNICAL STUFF:
 Projects and/or dependencies:
 
 All Projects handled by bsync need to be inside the path designated by the environment
-variable BSYNCDIR.
+variable BSYNC_PATH.
 A project and/or dependency does NOT need to be version controlled. If it is though, it
 should be a Git repository. As long as it has a build.sync file the tool will understand how
 to work.
@@ -144,10 +144,10 @@ Feature List:
 
 4) Add Multi-vault Support
   [Implementation Details]
-  -BSYNCDIR modification: Extend BSYNCDIR usability by using a $PATH-like format to support
+  -BSYNC_PATH modification: Extend BSYNC_PATH usability by using a $PATH-like format to support
    multiple paths. ie: PATH1:PATH2:PATH3:..PATHN
   -The build.sync file format should NOT change because of this. The tool will search for the
-   right repository using BSYNCDIR. It will search from first to last path in the BSYNCDIR
+   right repository using BSYNC_PATH. It will search from first to last path in the BSYNC_PATH
    variable, so if there are two repositories with the name, the first one will be used.
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>END>>>>>>>>>>>

@@ -18,8 +18,8 @@
 
 #check if vault variable is set/valid
 #support single vault ONLY
-if [ ! -d "$BSYNCDIR" ]; then
-  echo "error: valid BSYNCDIR variable missing.abort" >&2
+if [ ! -d "$BSYNC_PATH" ]; then
+  echo "error: valid BSYNC_PATH variable missing.abort" >&2
   exit 1
 fi
 while test $# -ne 0; do

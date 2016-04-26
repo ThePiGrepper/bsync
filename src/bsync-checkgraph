@@ -31,7 +31,7 @@ while IFS= read -r line;do
   if [[ $(echo $cline | wc -w) -ge 1 ]]; then
     if [[ $(echo $cline | wc -w) -ge 2 ]]; then
       read repo pversion <<<"$(echo $cline | cut -d ' ' -f1) $(echo $cline | cut -d ' ' -f2)"
-      tversion=$(git -C $BSYNCDIR/$repo rev-parse $pversion 2>/dev/null)
+      tversion=$(git -C $BSYNC_PATH/$repo rev-parse $pversion 2>/dev/null)
       if test $? -ne 0; then
         echo "error:Invalid Node <$repo - $pversion>. abort" >&2
         exit 1
@@ -43,7 +43,7 @@ while IFS= read -r line;do
     fi
     #Translation Phase
     #Support for single Vault only
-    Trepo[$index]=$BSYNCDIR/$repo
+    Trepo[$index]=$BSYNC_PATH/$repo
     Tver[$index]=$tversion;
     ((index++))
   fi
