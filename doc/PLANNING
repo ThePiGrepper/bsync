@@ -6,13 +6,13 @@ Overview
 
 Bsync is a tool for building applications that use external projects, like libraries,
 which are versioned in a Git repository. What the tool does is retrieve all the required
-versions of each dependency needed by the application (parent project) and repeats it
+versions of each dependency needed by the application (parent project) and repeats the process
 recursively until it gets the right components for making the specific build version.
 
 User Workflow:
 
-The expected user, in theory, will have several projects in his work area. The projects in
-question will be: front-end/application projects which will mostly require other projects
+The expected user, in theory, will have several projects in his work area or vault. The projects
+in question might be: front-end/application projects which will mostly require other projects
 like OSes, libraries or ports to work, and back-end/libraries projects which will mostly be
 used by the former type.
 The user will need to develop a certain project for which he will need a number of back-end
@@ -25,7 +25,7 @@ perform several actions ,like:
     build.sync file of his new project. Once configured, the user can run the 'bsync check'
     command inside the project repository to testrun the configuration and check if there 
     are any issues. If there are, he can keep modifying the configuration file until it's OK.
-  - With everything OK, the user can start develop his project. Although it is not needed,
+  - With everything OK, the user can start developing his project. Although it is not needed,
     it is advisable to make a Git commmit for the modification of build.sync alone.
 
 2) Return to an already existing project:
@@ -76,7 +76,7 @@ Each project working under bsync needs to contain the dependencies file named 'b
 The 'build.sync' file can be located at the project's root folder or inside the 'src' folder.
 In the case the 'build.sync' file is not available in either of those locations, the script
 will keep working without error, and it will assume that the project does NOT have any
-dependencies, it will INFO it and exit.
+dependencies, and it will continue navigating the dependency graph.
 
 Each dependency used by the project should be defined inside the build.sync file.
 The entry format is the following one:
@@ -88,12 +88,14 @@ example:
 ProjectName|Version[:option1:option2..:optionN]//(Options still TBD)
 
 where:
--ProjectName is the name of the project folder in the main vault.
+-ProjectName is the name of a project inside the directory(ies) contained in BSYNC_PATH.
 -Version is the Id of the commit hash, it can take the form of:
   A git commit hash.
   A git tag.(recommended)
   A HEAD variable or any other kind of git commit-id.(not recommended)
-  *Version can be only one(for now) and it can be left empty. If so, it does not refresh the dependency.
+-Other non-git related values available for version are:
+  'local', relates to the current state of the directory. it does not refresh the dependency in any way.
+  Leaving an empty space, this is equivalent to HEAD.
 
 Feature List:
 (from basic/main to advanced/crazy)
@@ -112,13 +114,13 @@ Feature List:
       This script will use a low-level script itself for parsing the build.sync file
       [bsync-parse].
     b) And second, an action phase[bsync-checkout], in which the actual dependency refresh
-       will be exectuted. All the different checkout options will be handled by this script.
-  -Optimize checkup phase: For doing this, a good idea is to only get the build.sync
-   file from required version instead of checking out the whole project and do all the
-   relevant checks.
-  -Optimize action phase: during checkup phase, taking advantage of the fact that the
-  build.sync file is opened. save all the relevant info of the refreshes as a temp file,
-  that way during the action phase the refresh process will be straight forward and quick.
+       will be executed. All the different checkout options will be handled by this script(eventually).
+  -the initial build.sync file can be chosen in two different ways, by file and by version.
+    a)by file: it uses the option -f <file> to select the initial build.sync file. Caching functionality
+      is always disabled if this mode is used.
+    b)by version: it is the default usage mode, it uses the build.sync file from the version pointed by HEAD
+      in the current repository (the user needs to be inside the git repository, if not, the operation will abort).
+      Caching functionality is enabled by default. Use --no-cache to disable caching.
 
 2) Modify and update dependencies list securely. [Main functionality]
   [Implementation Details]
@@ -140,7 +142,16 @@ Feature List:
 
 -----------
 
-3) Add Secondary Versions to build.sync
+3) Cache functionality
+  -To improve speed during bsync-down, a cache functionality will save certain builds as files, for easy
+    access later.
+  -To select the cache directory, the variable BSYNC_CACHE must be set with an existing path. bsync will save
+    the cached files inside that folder. If BSYNC_CACHE is not set or is an illegal path, the default cache directory
+    is '<git_repo_path>/.bsync'. If it does not exist, the .bsync folder will be created automatically.
+  -If enabled, it will try to find a pre-saved build in the cache directory, using the commit-id of the parent repository.
+    If the file is found, the checkgraph phase will be skipped, and the pre-saved file will be directly checkout.
+    If the file is not found, checkgraph is executed and, only if the graph is successful and does NOT contain local(non-versioned)
+    nodes, the build graph is saved inside cache directory, otherwise it is deleted after checkout.
 
 4) Add Multi-vault Support
   [Implementation Details]
@@ -149,6 +160,15 @@ Feature List:
   -The build.sync file format should NOT change because of this. The tool will search for the
    right repository using BSYNC_PATH. It will search from first to last path in the BSYNC_PATH
    variable, so if there are two repositories with the name, the first one will be used.
+
+5) Add Secondary Versions to build.sync
+
+6) Forced version support
+   -Use an additional parameter to overwrite a node version using CLI, instead of having to modify build.sync file.
+   -If such node (either repository or version) does not exist, parameter will be ignored.
+
+7) stand-alone bsync-check command
+   -A single wrapper for bsync-checkgraph for quick build.sync file debugging.
 
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>END>>>>>>>>>>>
 
