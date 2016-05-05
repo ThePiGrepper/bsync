@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+#
+# Usage: $0 <file>
+#
+#bsync check:
+#simple container for bsync-checkgraph script. Tests  graph correctness.
+
+#check if vault variable is set/valid
+#support single vault ONLY
+if [ ! -d "$BSYNC_PATH" ]; then
+  echo "error: valid BSYNC_PATH variable missing.abort" >&2
+  exit 1
+fi
+if [[ -f ${1} ]]; then
+  srcdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  cat ${1} | ${srcdir}/bsync-checkgraph
+  exit $?
+else
+  echo "error: file '${1}' not found.abort" >&2
+  exit 1
+fi
