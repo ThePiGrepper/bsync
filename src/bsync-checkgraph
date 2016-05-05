@@ -1,7 +1,9 @@
 #!/bin/bash
 #
 #
-# Usage: $0 input-file <output dir>
+# Usage: $0 <output_dir>
+#inputs: stdin - build.sync related data
+#        output_dir - output directory to save build simplified file
 #Tests the structure of the build graph on build.sync file in the current repo
 #
 #It starts by adding all elements in the local build.sync file to the internal table.
