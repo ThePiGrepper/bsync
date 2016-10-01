@@ -1,0 +1,7 @@
+List of nice things to have:
+
+- multi-vault support.
+- branch/tag/HEAD detection: if a checkout is needed and the build.sync file says to pull
+                             to a branch. it should check if it is a branch and pull to the
+                             branch and not to the related commit to avoid detached HEAD if
+                             possible. same with HEAD.
